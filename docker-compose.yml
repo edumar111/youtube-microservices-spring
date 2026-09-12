@@ -1,0 +1,124 @@
+# Docker Compose del stack (núcleo + seguridad):
+# PostgreSQL + Authorization Server + los 3 microservicios. Descubrimiento por DNS de Docker
+# (sin Eureka). Configuración 12-Factor por variables de entorno. Los servicios validan JWT
+# emitidos por el auth-server (ep. 11).
+services:
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: store
+      POSTGRES_PASSWORD: store
+      POSTGRES_DB: store
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U store"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  auth-server:
+    build:
+      context: .
+      dockerfile: auth-server/Dockerfile
+    ports:
+      - "9000:9000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9000/oauth2/jwks || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # Ep. 12 — Kafka en modo KRaft (nodo único) para la saga + outbox
+  kafka:
+    image: apache/kafka:3.9.0
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    ports:
+      - "9092:9092"
+
+  product-service:
+    build:
+      context: .
+      dockerfile: product-service/Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: postgres
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/productdb
+      SPRING_DATASOURCE_USERNAME: store
+      SPRING_DATASOURCE_PASSWORD: store
+      AUTH_JWK_SET_URI: http://auth-server:9000/oauth2/jwks
+      APP_SAGA_ENABLED: "true"
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    ports:
+      - "8091:8091"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-server:
+        condition: service_started
+      kafka:
+        condition: service_started
+
+  customer-service:
+    build:
+      context: .
+      dockerfile: customer-service/Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: postgres
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/customerdb
+      SPRING_DATASOURCE_USERNAME: store
+      SPRING_DATASOURCE_PASSWORD: store
+      AUTH_JWK_SET_URI: http://auth-server:9000/oauth2/jwks
+    ports:
+      - "8092:8092"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-server:
+        condition: service_started
+
+  shopping-service:
+    build:
+      context: .
+      dockerfile: shopping-service/Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: postgres
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/shoppingdb
+      SPRING_DATASOURCE_USERNAME: store
+      SPRING_DATASOURCE_PASSWORD: store
+      AUTH_JWK_SET_URI: http://auth-server:9000/oauth2/jwks
+      APP_SAGA_ENABLED: "true"
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      # Descubrimiento por DNS de Docker: nombres de servicio como host
+      CLIENTS_PRODUCT_URL: http://product-service:8091
+      CLIENTS_CUSTOMER_URL: http://customer-service:8092
+    ports:
+      - "8093:8093"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-server:
+        condition: service_started
+      kafka:
+        condition: service_started
+      product-service:
+        condition: service_started
+      customer-service:
+        condition: service_started
+
+volumes:
+  pgdata:
