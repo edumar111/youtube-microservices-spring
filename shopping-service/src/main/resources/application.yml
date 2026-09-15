@@ -1,0 +1,130 @@
+spring:
+  application:
+    name: shopping-service
+  threads:
+    virtual:
+      enabled: true
+  profiles:
+    active: local
+  # Ep. 11: Resource Server — validación de JWT por JWKS del Authorization Server
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${AUTH_JWK_SET_URI:http://localhost:9000/oauth2/jwks}
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+    show-sql: false
+  sql:
+    init:
+      mode: always
+  # Ep. 12 — Kafka (saga + outbox)
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: shopping-saga
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+server:
+  port: 8093
+
+# Ep. 12 — saga desactivada por defecto (se activa en Docker y en el test de Kafka)
+app:
+  saga:
+    enabled: ${APP_SAGA_ENABLED:false}
+    relay-delay-ms: 1000
+    topics:
+      invoice-created: invoice-created
+      stock-processed: stock-processed
+
+# URLs de los servicios dependientes. Por defecto localhost; en Docker se sobreescriben
+# con los nombres DNS de los contenedores (ver perfil 'docker'/variables de entorno).
+clients:
+  product:
+    url: ${CLIENTS_PRODUCT_URL:http://localhost:8091}
+  customer:
+    url: ${CLIENTS_CUSTOMER_URL:http://localhost:8092}
+  timeout:
+    connect-ms: 2000
+    read-ms: 2000
+
+# Ep. 8 — Resilience4j: circuit breaker y retry por cada cliente remoto.
+resilience4j:
+  circuitbreaker:
+    instances:
+      productClient:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 3
+        register-health-indicator: true
+      customerClient:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 3
+        register-health-indicator: true
+  retry:
+    instances:
+      productClient:
+        max-attempts: 3
+        wait-duration: 300ms
+      customerClient:
+        max-attempts: 3
+        wait-duration: 300ms
+
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318/v1/traces}
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,circuitbreakers,circuitbreakerevents
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always
+  health:
+    circuitbreakers:
+      enabled: true
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+  datasource:
+    url: jdbc:h2:mem:shoppingdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  h2:
+    console:
+      enabled: true
+
+---
+spring:
+  config:
+    activate:
+      on-profile: postgres
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/shoppingdb}
+    username: ${SPRING_DATASOURCE_USERNAME:store}
+    password: ${SPRING_DATASOURCE_PASSWORD:store}
+    driver-class-name: org.postgresql.Driver
