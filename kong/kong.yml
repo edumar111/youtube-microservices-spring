@@ -1,0 +1,45 @@
+# Ep. 9 — Kong API Gateway en modo DB-less (declarativo).
+# Puerta de entrada única: enruta a los microservicios por su DNS de Docker.
+_format_version: "3.0"
+_transform: true
+
+services:
+  - name: product-service
+    url: http://product-service:8091
+    routes:
+      - name: products
+        paths:
+          - /products
+        strip_path: false
+
+  - name: customer-service
+    url: http://customer-service:8092
+    routes:
+      - name: customers
+        paths:
+          - /customers
+        strip_path: false
+      - name: regions
+        paths:
+          - /regions
+        strip_path: false
+
+  - name: shopping-service
+    url: http://shopping-service:8093
+    routes:
+      - name: invoices
+        paths:
+          - /invoices
+        strip_path: false
+
+# Rate limiting global (política local, en memoria de cada nodo Kong).
+plugins:
+  - name: rate-limiting
+    config:
+      minute: 60
+      policy: local
+  - name: correlation-id
+    config:
+      header_name: X-Request-Id
+      generator: uuid
+      echo_downstream: true
