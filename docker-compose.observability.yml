@@ -1,0 +1,49 @@
+# Ep. 10 + 13 — Observabilidad: Jaeger (trazas) + Prometheus (métricas) + Grafana (dashboards).
+#   docker compose -f docker-compose.yml -f docker-compose.observability.yml up -d
+# UIs: Jaeger http://localhost:16686 · Prometheus http://localhost:9090 · Grafana http://localhost:3000 (admin/admin)
+services:
+  jaeger:
+    image: jaegertracing/all-in-one:1.62.0
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "16686:16686"   # UI
+      - "4317:4317"     # OTLP gRPC
+      - "4318:4318"     # OTLP HTTP
+
+  # Ep. 13 — Prometheus
+  prometheus:
+    image: prom/prometheus:v3.1.0
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+    volumes:
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./observability/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+    ports:
+      - "9090:9090"
+
+  # Ep. 13 — Grafana (datasource y dashboard provisionados)
+  grafana:
+    image: grafana/grafana:11.4.0
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+
+  product-service:
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318/v1/traces
+
+  customer-service:
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318/v1/traces
+
+  shopping-service:
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318/v1/traces
