@@ -1,0 +1,21 @@
+# Ep. 13 — Reglas de alerta de ejemplo (Prometheus evalúa; para notificar se añade Alertmanager).
+groups:
+  - name: microservices
+    rules:
+      - alert: InstanceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Servicio caído: {{ $labels.job }}"
+          description: "{{ $labels.instance }} no responde al scrape desde hace más de 1 minuto."
+
+      - alert: HighHttpServerErrors
+        expr: sum by (job) (rate(http_server_requests_seconds_count{status=~"5.."}[5m])) > 1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Errores 5xx elevados en {{ $labels.job }}"
+          description: "Más de 1 req/s con estado 5xx en los últimos 5 minutos."

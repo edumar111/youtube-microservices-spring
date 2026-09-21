@@ -1,0 +1,44 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "schemaVersion": 39,
+  "title": "Online Store — Overview",
+  "tags": ["spring-boot", "digitallab"],
+  "time": { "from": "now-30m", "to": "now" },
+  "timezone": "",
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Servicios up",
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "sum(up)", "legendFormat": "up" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "HTTP requests (rate 1m)",
+      "gridPos": { "h": 8, "w": 16, "x": 8, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum by (job) (rate(http_server_requests_seconds_count[1m]))",
+          "legendFormat": "{{job}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "JVM memory used",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum by (job) (jvm_memory_used_bytes)",
+          "legendFormat": "{{job}}"
+        }
+      ]
+    }
+  ]
+}
