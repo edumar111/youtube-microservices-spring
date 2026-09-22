@@ -1,0 +1,8 @@
+# Ep. 14 — Todo el sistema con un solo comando:
+#   docker compose -f docker-compose.all.yml up --build -d
+# Combina, vía 'include', el stack base (Postgres, Auth Server, Kafka, microservicios) con
+# el gateway (Kong) y la observabilidad (Jaeger, Prometheus, Grafana).
+include:
+  - docker-compose.yml
+  - docker-compose.kong.yml
+  - docker-compose.observability.yml
