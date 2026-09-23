@@ -1,0 +1,34 @@
+spring:
+  application:
+    name: assistant
+  threads:
+    virtual:
+      enabled: true
+  ai:
+    anthropic:
+      api-key: ${ANTHROPIC_API_KEY:}
+      chat:
+        options:
+          model: ${ANTHROPIC_CHAT_MODEL:claude-sonnet-4-5}
+    # Expone las @Tool como herramientas de un servidor MCP
+    mcp:
+      server:
+        name: online-store-assistant
+        version: 1.0.0
+
+server:
+  port: 8095
+
+clients:
+  product:
+    url: ${CLIENTS_PRODUCT_URL:http://localhost:8091}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
