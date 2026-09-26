@@ -1,15 +1,18 @@
--- Semillas de regiones y cliente demo. Sin IDs explícitos (la secuencia IDENTITY avanza).
+-- Semillas de regiones y cliente demo. IDs explícitos estables + reinicio de secuencia a 100.
 DELETE FROM tbl_customers;
 DELETE FROM tbl_regions;
 
-INSERT INTO tbl_regions (name) VALUES ('Sudamérica');     -- id 1
-INSERT INTO tbl_regions (name) VALUES ('Centroamérica');  -- id 2
-INSERT INTO tbl_regions (name) VALUES ('Norteamérica');   -- id 3
-INSERT INTO tbl_regions (name) VALUES ('Europa');         -- id 4
-INSERT INTO tbl_regions (name) VALUES ('Asia');           -- id 5
-INSERT INTO tbl_regions (name) VALUES ('África');         -- id 6
-INSERT INTO tbl_regions (name) VALUES ('Oceanía');        -- id 7
-INSERT INTO tbl_regions (name) VALUES ('Antártida');      -- id 8
+INSERT INTO tbl_regions (id, name) VALUES (1, 'Sudamérica');
+INSERT INTO tbl_regions (id, name) VALUES (2, 'Centroamérica');
+INSERT INTO tbl_regions (id, name) VALUES (3, 'Norteamérica');
+INSERT INTO tbl_regions (id, name) VALUES (4, 'Europa');
+INSERT INTO tbl_regions (id, name) VALUES (5, 'Asia');
+INSERT INTO tbl_regions (id, name) VALUES (6, 'África');
+INSERT INTO tbl_regions (id, name) VALUES (7, 'Oceanía');
+INSERT INTO tbl_regions (id, name) VALUES (8, 'Antártida');
 
-INSERT INTO tbl_customers (first_name, last_name, email, photo_url, region_id, state)
-VALUES ('Andrés', 'Guzmán', 'profesor@bolsadeideas.com', '', 1, 'CREATED');
+INSERT INTO tbl_customers (id, first_name, last_name, email, photo_url, region_id, state)
+VALUES (1, 'Andrés', 'Guzmán', 'profesor@bolsadeideas.com', '', 1, 'CREATED');
+
+ALTER TABLE tbl_regions ALTER COLUMN id RESTART WITH 100;
+ALTER TABLE tbl_customers ALTER COLUMN id RESTART WITH 100;

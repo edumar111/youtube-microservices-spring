@@ -9,11 +9,13 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Ep. 11 — verifica el Resource Server: sin JWT devuelve 401; con un JWT válido, 200.
- * Usa H2 (perfil local) y un JWT simulado (spring-security-test), sin Authorization Server real.
+ * Ep. 11 — política de seguridad de product-service (como una tienda online):
+ * el catálogo (GET) es público; las escrituras y el ajuste de stock exigen JWT.
+ * Usa H2 (perfil local) y JWT simulado (spring-security-test).
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -24,20 +26,29 @@ class ProductSecurityWebTest {
     MockMvc mockMvc;
 
     @Test
-    void productsRequireAuthentication() throws Exception {
-        mockMvc.perform(get("/products"))
+    void catalogIsPublic() throws Exception {
+        mockMvc.perform(get("/products")).andExpect(status().isOk());
+        mockMvc.perform(get("/products/1")).andExpect(status().isOk());
+    }
+
+    @Test
+    void catalogAlsoWorksWithJwt() throws Exception {
+        mockMvc.perform(get("/products").with(jwt())).andExpect(status().isOk());
+    }
+
+    @Test
+    void writeRequiresAuthentication() throws Exception {
+        mockMvc.perform(post("/products")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void stockUpdateRequiresAuthentication() throws Exception {
+        mockMvc.perform(get("/products/1/stock").param("quantity", "1"))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
-    void productsAccessibleWithValidJwt() throws Exception {
-        mockMvc.perform(get("/products").with(jwt()))
-                .andExpect(status().isOk());
-    }
-
-    @Test
     void actuatorHealthIsPublic() throws Exception {
-        mockMvc.perform(get("/actuator/health"))
-                .andExpect(status().isOk());
+        mockMvc.perform(get("/actuator/health")).andExpect(status().isOk());
     }
 }
