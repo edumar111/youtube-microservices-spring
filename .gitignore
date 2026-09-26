@@ -23,3 +23,6 @@ target/
 
 # Build helpers descargados por el wrapper
 .mvn/wrapper/maven-wrapper.jar
+
+# Variables de entorno locales (secretos)
+.env

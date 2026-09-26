@@ -9,12 +9,18 @@ spring:
       api-key: ${ANTHROPIC_API_KEY:}
       chat:
         options:
-          model: ${ANTHROPIC_CHAT_MODEL:claude-sonnet-4-5}
+          # Modelo LLM. Por defecto Haiku (el más económico). Cambia con LLM_MODEL.
+          model: ${LLM_MODEL:claude-haiku-4-5}
     # Expone las @Tool como herramientas de un servidor MCP
     mcp:
       server:
         name: online-store-assistant
         version: 1.0.0
+
+# Interruptor del LLM. Si es false, el asistente arranca SIN clave y /assistant/chat responde
+# un mensaje de "desactivado" (un EnvironmentPostProcessor pone spring.ai.model.chat=none).
+llm:
+  enabled: ${LLM_ENABLED:false}
 
 server:
   port: 8095

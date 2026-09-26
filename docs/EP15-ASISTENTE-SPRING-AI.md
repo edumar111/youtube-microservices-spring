@@ -156,17 +156,28 @@ spring:
         version: 1.0.0
 ```
 
-### Modelo (Claude)
-```yaml
-spring:
-  ai:
-    anthropic:
-      api-key: ${ANTHROPIC_API_KEY:}
-      chat:
-        options:
-          model: ${ANTHROPIC_CHAT_MODEL:claude-sonnet-4-5}
+### Configuración por variables de entorno (`.env`)
+
+Todo se controla con 3 variables. En Docker, ponlas en un archivo **`.env`** en la **raíz del repo
+`youtube-microservices-spring/`** (misma carpeta que los `docker-compose*.yml`); Compose lo lee solo.
+Hay una plantilla en **`.env.example`** (cópiala a `.env`). El `.env` está en `.gitignore` (no se sube).
+
+| Variable | Por defecto | Para qué |
+|---|---|---|
+| `LLM_ENABLED` | `false` | Activa el LLM. `false` → arranca **sin clave** y el chat responde "desactivado". `true` → usa Claude. |
+| `LLM_MODEL` | `claude-haiku-4-5` | Modelo de Anthropic. **Haiku = el más económico** (recomendado). Alternativa: `claude-sonnet-4-5`. |
+| `ANTHROPIC_API_KEY` | (vacío) | Tu clave de Anthropic. Solo necesaria si `LLM_ENABLED=true`. |
+
+Ejemplo de `.env`:
+```dotenv
+LLM_ENABLED=true
+LLM_MODEL=claude-haiku-4-5
+ANTHROPIC_API_KEY=sk-ant-...
 ```
-El id del modelo debe ser uno válido de la API de Anthropic; ajústalo con `ANTHROPIC_CHAT_MODEL`.
+
+En local (sin Docker) exporta esas variables antes de `spring-boot:run`. Internamente, `LLM_ENABLED`
+activa/desactiva la autoconfiguración del modelo (`spring.ai.model.chat = anthropic | none`) mediante un
+`EnvironmentPostProcessor`, por eso puede arrancar sin clave cuando está en `false`.
 
 ---
 

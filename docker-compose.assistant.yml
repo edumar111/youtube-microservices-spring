@@ -1,15 +1,16 @@
-# Ep. 15 — Asistente (Spring AI + Claude). Se ejecuta como override porque necesita clave:
-#   export ANTHROPIC_API_KEY=sk-ant-...
+# Ep. 15 — Asistente (Spring AI + Claude). Lee las variables desde el archivo .env (misma carpeta).
 #   docker compose -f docker-compose.all.yml -f docker-compose.assistant.yml up --build -d assistant
-# El widget de chat del frontend lo consume vía Kong (ruta /assistant).
+# Con LLM_ENABLED=false arranca sin clave (el widget mostrará "desactivado").
+# Con LLM_ENABLED=true necesita una ANTHROPIC_API_KEY válida.
 services:
   assistant:
     build:
       context: .
       dockerfile: assistant/Dockerfile
     environment:
+      LLM_ENABLED: ${LLM_ENABLED:-false}
+      LLM_MODEL: ${LLM_MODEL:-claude-haiku-4-5}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-      ANTHROPIC_CHAT_MODEL: ${ANTHROPIC_CHAT_MODEL:-claude-sonnet-4-5}
       # El asistente consulta el catálogo directo por DNS de Docker (GET público).
       CLIENTS_PRODUCT_URL: http://product-service:8091
     ports:

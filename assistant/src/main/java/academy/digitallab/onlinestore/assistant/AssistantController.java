@@ -1,6 +1,7 @@
 package academy.digitallab.onlinestore.assistant;
 
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -8,10 +9,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * Ep. 15 — endpoint del asistente de compras. El ChatClient usa las herramientas de catálogo
- * para responder con datos reales de los microservicios.
+ * para responder con datos reales de los microservicios. Solo activo con {@code LLM_ENABLED=true}.
  */
 @RestController
 @RequestMapping("/assistant")
+@ConditionalOnProperty(prefix = "llm", name = "enabled", havingValue = "true")
 public class AssistantController {
 
     private final ChatClient chatClient;

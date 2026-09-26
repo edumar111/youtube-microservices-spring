@@ -1,0 +1,2 @@
+org.springframework.boot.env.EnvironmentPostProcessor=\
+academy.digitallab.onlinestore.assistant.LlmToggleEnvironmentPostProcessor
