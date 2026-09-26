@@ -71,10 +71,11 @@ public class AuthorizationServerConfig {
     public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/actuator/health/**").permitAll()
+                        .requestMatchers("/actuator/health/**", "/login").permitAll()
                         .anyRequest().authenticated())
                 .cors(Customizer.withDefaults())
-                .formLogin(Customizer.withDefaults());
+                // Página de login personalizada (estilo de la tienda), servida por LoginController.
+                .formLogin(form -> form.loginPage("/login").permitAll());
         return http.build();
     }
 
