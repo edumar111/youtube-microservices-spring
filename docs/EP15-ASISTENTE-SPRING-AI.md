@@ -67,10 +67,55 @@ Aquí es **al revés**: tu `assistant` **expone** sus herramientas con el están
 ## 2. Conceptos
 
 ### 2.1 Tool Calling (function calling)
-El LLM no sabe tu stock ni tus precios. Con *tool calling* le declaras **funciones** (“herramientas”)
-que puede pedir ejecutar. El modelo decide, según la pregunta, llamar a `listProducts()` o
-`getProduct(id)`; tu backend ejecuta la función (que llama al microservicio real), y el resultado
-vuelve al modelo para que redacte la respuesta. Así la respuesta se basa en datos **en vivo**.
+
+**El problema:** un LLM está "congelado" en su fecha de entrenamiento y **no conoce tu stock, precios ni
+pedidos**. Sin herramientas, ante "¿qué productos tienen?" **se lo inventaría** (alucinación). El *tool
+calling* le da al modelo **manos** para consultar/actuar sobre tus sistemas reales.
+
+**Qué es (no ejecuta tu código; es un baile de turnos):**
+1. Le declaras al modelo un conjunto de **herramientas** (funciones) con su **descripción** y parámetros.
+2. Ante una pregunta, el modelo decide que necesita datos y, en vez de responder, **pide ejecutar una
+   función** (con sus argumentos).
+3. **Tu aplicación ejecuta la función** (que llama al microservicio real) y le **devuelve el resultado**.
+4. El modelo usa ese resultado para **redactar la respuesta**.
+
+En una frase: **el modelo decide QUÉ herramienta usar y CUÁNDO; tu backend la ejecuta y aporta los datos
+reales.** Por eso es el "cerebro/puente" entre el razonamiento del LLM y tus microservicios.
+
+```
+Usuario: "¿qué zapatillas hay y a qué precio? ¿queda stock?"
+   │
+   ▼
+Claude ve las tools (listProducts / getProduct) y decide: llamar a listProducts()
+   │  (turno 1: el modelo NO responde, pide ejecutar la tool)
+   ▼
+Spring AI ejecuta ProductTools.listProducts() → GET /products (product-service) → catálogo real
+   │  (el resultado se re-inyecta al modelo)
+   ▼
+Claude redacta con datos reales: "Adidas Cloudfoam $178.89, stock 5…"   (turno 2: respuesta final)
+```
+
+**Cómo funciona con `@Tool` en Spring AI:**
+```java
+@Tool(description = "Lista todos los productos disponibles en el catálogo de la tienda online")
+public List<ProductInfo> listProducts() {
+    return restClient.get().uri("/products").retrieve().body(...);
+}
+```
+- `@Tool` + su **`description`** son clave: Spring AI convierte la firma del método (nombre, parámetros,
+  tipos) en un **esquema JSON** que envía al modelo junto con la pregunta.
+- El modelo **elige la herramienta leyendo la descripción** (por eso debe ser clara) y, en
+  `getProduct(@ToolParam Long id)`, **extrae el `id`** de la frase ("dame el producto 1" → `id=1`).
+- Spring AI **ejecuta el método por ti**, captura el retorno, se lo re-inyecta al modelo y **cierra el
+  ciclo automáticamente**. Tú solo escribes el método.
+
+**Por qué importa:**
+- **Precisión y frescura:** responde con tu dato real de *ahora*, no con lo que "recuerda".
+- **Sin reentrenar el modelo:** añades capacidades solo escribiendo funciones.
+- **Control y seguridad:** tú decides **qué** expone la tool y **qué** hace (aquí, solo lecturas del
+  catálogo y un DTO reducido `ProductInfo`; nada de datos internos).
+- **Componible:** puedes tener muchas tools (catálogo, pedidos, envíos…) y el modelo elige la adecuada.
+- **Base de MCP:** una tool escrita así se puede **exponer por MCP** para que otros agentes/LLM la usen.
 
 ### 2.2 MCP — Model Context Protocol
 **MCP** es un **protocolo abierto y estándar** (impulsado por Anthropic) para conectar modelos/agentes
