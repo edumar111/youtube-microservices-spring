@@ -5,6 +5,8 @@ WORKDIR /workspace
 # Copia del wrapper y POMs para cachear dependencias
 COPY .mvn .mvn
 COPY mvnw pom.xml ./
+COPY auth-server/pom.xml auth-server/pom.xml
+COPY assistant/pom.xml assistant/pom.xml
 COPY product-service/pom.xml product-service/pom.xml
 COPY customer-service/pom.xml customer-service/pom.xml
 COPY shopping-service/pom.xml shopping-service/pom.xml
