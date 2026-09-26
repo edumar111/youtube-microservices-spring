@@ -16,12 +16,14 @@ con validación de negocio. Por eso se genera también `catalog.json` (por si se
 
 ## Archivos
 
+Los artefactos que usan los alumnos viven en **`data/`** (no aquí):
+
 | Archivo | Qué es |
 |---|---|
-| `generate_catalog_sql.py` | Generador: lee el `.xlsx` (stdlib, sin dependencias) y produce el SQL y el JSON. |
-| `catalog_import.sql` | **Script de carga** (categorías + 593 productos) para PostgreSQL/H2. |
-| `catalog.json` | Mismos datos en JSON (camino alternativo vía API). |
-| `../../data/temu_productos_TI_computacion_593.xlsx` | Fuente (hoja `Productos`). |
+| `scripts/catalog/generate_catalog_sql.py` | Generador: lee el `.xlsx` (stdlib, sin dependencias) y produce el SQL y el JSON en `data/`. |
+| `data/catalog_import.sql` | **Script de carga** (categorías + 593 productos) para PostgreSQL/H2. |
+| `data/catalog.json` | Mismos datos en JSON (camino alternativo vía API). |
+| `data/temu_productos_TI_computacion_593.xlsx` | Fuente (hoja `Productos`). |
 
 ## Mapeo al esquema de `tbl_products`
 
@@ -40,17 +42,19 @@ con validación de negocio. Por eso se genera también `catalog.json` (por si se
 
 ## Regenerar el SQL/JSON
 
+El generador escribe por defecto en `data/`:
 ```bash
-cd scripts/catalog
-python3 generate_catalog_sql.py ../../data/temu_productos_TI_computacion_593.xlsx .
+python3 scripts/catalog/generate_catalog_sql.py
+# (opcional) fuente y salida explícitas:
+# python3 scripts/catalog/generate_catalog_sql.py data/temu_productos_TI_computacion_593.xlsx data
 ```
 
 ## Cargar en la base de datos (PostgreSQL)
 
-Con el stack levantado (`make up`), carga el script en `productdb`:
+Con el stack levantado (`make up`), desde la raíz del repo:
 ```bash
 PG=$(docker ps --format '{{.Names}}' | grep postgres | head -1)
-docker exec -i "$PG" psql -U store -d productdb -v ON_ERROR_STOP=1 < catalog_import.sql
+docker exec -i "$PG" psql -U store -d productdb -v ON_ERROR_STOP=1 < data/catalog_import.sql
 # verificar
 docker exec -i "$PG" psql -U store -d productdb -tAc "SELECT count(*) FROM tbl_products;"
 ```

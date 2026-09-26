@@ -99,8 +99,10 @@ def sql_str(s):
 
 
 def main():
-    xlsx = sys.argv[1] if len(sys.argv) > 1 else "../../data/temu_productos_TI_computacion_593.xlsx"
-    out = Path(sys.argv[2] if len(sys.argv) > 2 else ".")
+    # Por defecto, fuente y salida en la carpeta data/ del repo (independiente del cwd).
+    data_dir = Path(__file__).resolve().parents[2] / "data"
+    xlsx = sys.argv[1] if len(sys.argv) > 1 else str(data_dir / "temu_productos_TI_computacion_593.xlsx")
+    out = Path(sys.argv[2]) if len(sys.argv) > 2 else data_dir
     rows = read_sheet(xlsx, SHEET_NAME)
     header = [clean(h) for h in rows[0]]
     idx = {name: i for i, name in enumerate(header)}
