@@ -23,14 +23,19 @@ import org.springframework.security.config.annotation.web.configuration.OAuth2Au
 import org.springframework.security.config.annotation.web.configurers.oauth2.server.authorization.OAuth2AuthorizationServerConfigurer;
 import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
 import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
+import org.springframework.security.oauth2.core.oidc.OidcScopes;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -52,6 +57,8 @@ public class AuthorizationServerConfig {
                 .securityMatcher(authorizationServer.getEndpointsMatcher())
                 .with(authorizationServer, server -> server.oidc(Customizer.withDefaults()))
                 .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
+                // CORS para que la SPA (Angular) pueda hacer el intercambio de token (PKCE) y consultar JWKS.
+                .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.ignoringRequestMatchers(authorizationServer.getEndpointsMatcher()))
                 .exceptionHandling(e -> e.authenticationEntryPoint(
                         new LoginUrlAuthenticationEntryPoint("/login")));
@@ -66,6 +73,7 @@ public class AuthorizationServerConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/health/**").permitAll()
                         .anyRequest().authenticated())
+                .cors(Customizer.withDefaults())
                 .formLogin(Customizer.withDefaults());
         return http.build();
     }
@@ -100,7 +108,42 @@ public class AuthorizationServerConfig {
                 .scope("invoice.write")
                 .clientSettings(ClientSettings.builder().requireAuthorizationConsent(false).build())
                 .build();
-        return new InMemoryRegisteredClientRepository(storeClient);
+
+        // Cliente público para la SPA Angular (Authorization Code + PKCE, sin secreto).
+        RegisteredClient storeSpa = RegisteredClient.withId(UUID.randomUUID().toString())
+                .clientId("store-spa")
+                .clientAuthenticationMethod(ClientAuthenticationMethod.NONE)
+                .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
+                .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
+                .redirectUri("http://localhost:4200")
+                .redirectUri("http://localhost:4200/index.html")
+                .postLogoutRedirectUri("http://localhost:4200")
+                .scope(OidcScopes.OPENID)
+                .scope(OidcScopes.PROFILE)
+                .scope("product.read")
+                .scope("customer.read")
+                .scope("invoice.read")
+                .scope("invoice.write")
+                .clientSettings(ClientSettings.builder()
+                        .requireProofKey(true)              // PKCE obligatorio
+                        .requireAuthorizationConsent(false)
+                        .build())
+                .build();
+
+        return new InMemoryRegisteredClientRepository(storeClient, storeSpa);
+    }
+
+    /** CORS para el origen de la SPA (Angular en http://localhost:4200). */
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(List.of("http://localhost:4200"));
+        config.setAllowedMethods(List.of("GET", "POST", "OPTIONS"));
+        config.setAllowedHeaders(List.of("*"));
+        config.setAllowCredentials(true);
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
     }
 
     /** Fuente de claves JWK (RSA) para firmar los tokens. */

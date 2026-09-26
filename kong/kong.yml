@@ -38,6 +38,23 @@ plugins:
     config:
       minute: 60
       policy: local
+  # CORS para la SPA Angular (ep. 4 del mini-curso de frontend). Kong responde el preflight.
+  - name: cors
+    config:
+      origins:
+        - http://localhost:4200
+      methods:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+        - OPTIONS
+      headers:
+        - Accept
+        - Authorization
+        - Content-Type
+      credentials: true
+      max_age: 3600
   - name: correlation-id
     config:
       header_name: X-Request-Id
