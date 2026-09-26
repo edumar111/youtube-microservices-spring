@@ -63,6 +63,45 @@ da **fidelidad**: “lo que pasa en el test es lo que pasará en producción”.
 
 ---
 
+## 3.1 ¿Los tests con Testcontainers son unitarios o de integración?
+
+**Son tests de INTEGRACIÓN, no unitarios.** Es una consecuencia directa de qué es Testcontainers:
+levantar dependencias reales (PostgreSQL, Kafka) solo tiene sentido cuando pruebas la **integración**
+entre tu código y esa infraestructura. Un test unitario, por definición, aísla una unidad y **no** usa
+Docker ni servicios externos.
+
+Recordatorio de la taxonomía:
+
+| Tipo | Qué prueba | Dependencias | Velocidad | ¿Testcontainers? |
+|---|---|---|---|---|
+| **Unitario** | Una clase/método aislado (p. ej. lógica de dominio) | Mocks/stubs; sin Spring | Muy rápida (ms) | No |
+| **De slice** | Una capa con contexto parcial (p. ej. `@WebMvcTest`, MockMvc) | Parte del contexto; mocks del resto | Rápida | No (normalmente) |
+| **De integración** | Varias capas juntas contra dependencias **reales** | Contenedores reales (BD, broker) | Más lenta (s) | **Sí** |
+
+### Inventario real de este repo (12 métodos `@Test` en 6 clases)
+
+| Clase de test | Métodos | Tipo | Infraestructura |
+|---|---:|---|---|
+| `ProductServiceIntegrationTest` | 3 | Integración | **Testcontainers** PostgreSQL |
+| `CustomerServiceIntegrationTest` | 2 | Integración | **Testcontainers** PostgreSQL |
+| `ShoppingServiceIntegrationTest` | 2 | Integración | **Testcontainers** PostgreSQL (+ mocks de los puertos de cliente) |
+| `ProductSagaKafkaTest` | 1 | Integración | **Testcontainers** PostgreSQL **+ Kafka** |
+| `ProductSecurityWebTest` | 3 | Integración web (MockMvc + `spring-security-test`) | H2 (sin contenedores) |
+| `ResilienceFallbackTest` | 1 | Integración | H2 + mock del cliente HTTP |
+
+Conclusiones:
+- **Los 8 tests que usan Testcontainers son de integración** (4 clases; una además levanta Kafka).
+- Las otras 2 clases también cargan el contexto de Spring (`@SpringBootTest`): son de
+  integración/“web slice”, pero con **H2 y mocks** en lugar de contenedores.
+- **No hay tests unitarios puros** en el repo todavía (ninguna prueba de una clase aislada sin Spring).
+  La arquitectura hexagonal los facilitaría (los puertos como `ProductRepositoryPort` son interfaces
+  fáciles de mockear) — es una mejora natural para complementar los de integración.
+
+> Regla práctica: **Testcontainers ⇒ integración**. Para tests unitarios no se usa Testcontainers
+> (se usan mocks); para verificar el comportamiento contra Postgres/Kafka reales, sí.
+
+---
+
 ## 4. La diferencia (lado a lado)
 
 | | **TDD** | **Testcontainers** |
