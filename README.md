@@ -134,5 +134,5 @@ Ver la carpeta [`docs/`](docs/):
 - **`make up` falla al construir:** asegúrate de que Docker está corriendo y hay espacio en disco.
 - **Testcontainers no encuentra Docker / cuelgues:** exporta `DOCKER_CONFIG=/tmp/empty-docker-config` para evitar el credential helper.
 - **El frontend no arranca:** usa Node 22 (`nvm use 22`); la CLI de Angular exige `^22.22.3 || ^24.15.0`.
-- **El chat del asistente dice "no disponible":** falta levantar el servicio `assistant` (paso 2) o `LLM_ENABLED=false`.
+- **El chat del asistente dice "no disponible":** falta levantar el servicio `assistant` (paso 2). Si lo levantaste **después** de Kong y ves "name resolution failed", **reinicia Kong** (`docker compose -f docker-compose.all.yml restart kong`) para que re-resuelva el DNS. Si `LLM_ENABLED=false`, el chat responde "desactivado" (es correcto).
 - **El catálogo no carga en la web:** revisa que Kong (`:8000`) y product-service estén arriba (`make ps`).

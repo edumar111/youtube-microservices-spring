@@ -13,6 +13,8 @@ services:
       KONG_PROXY_ERROR_LOG: /dev/stderr
       KONG_ADMIN_ERROR_LOG: /dev/stderr
       KONG_ADMIN_LISTEN: 0.0.0.0:8001
+      # No cachear fallos de DNS: permite levantar 'assistant' después de Kong sin reiniciarlo.
+      KONG_DNS_ERROR_TTL: "1"
     volumes:
       - ./kong/kong.yml:/kong/kong.yml:ro
     ports:
