@@ -12,5 +12,9 @@ CREATE TABLE IF NOT EXISTS tbl_products (
     price       DOUBLE PRECISION,
     status      VARCHAR(50),
     create_at   DATE,
+    image_url   VARCHAR(1000),
     category_id BIGINT REFERENCES tbl_categories (id)
 );
+
+-- Para bases ya existentes (volumen persistido): añade la columna si falta.
+ALTER TABLE tbl_products ADD COLUMN IF NOT EXISTS image_url VARCHAR(1000);

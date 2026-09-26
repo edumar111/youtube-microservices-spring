@@ -30,6 +30,7 @@ public class WebMapper {
                 product.price(),
                 product.status(),
                 product.createdAt(),
+                product.imageUrl(),
                 toResponse(product.category()));
     }
 
@@ -42,10 +43,11 @@ public class WebMapper {
                 request.price(),
                 null,
                 null,
+                request.imageUrl(),
                 new Category(request.categoryId(), null));
     }
 
     public Product toDomain(ProductUpdateRequest request) {
-        return new Product(null, request.name(), request.description(), null, request.price(), null, null, null);
+        return new Product(null, request.name(), request.description(), null, request.price(), null, null, null, null);
     }
 }

@@ -64,6 +64,7 @@ public class ProductService implements ProductUseCase {
                 product.price(),
                 "CREATED",
                 LocalDate.now(),
+                product.imageUrl(),
                 product.category());
         return productRepository.save(toCreate);
     }
@@ -80,6 +81,7 @@ public class ProductService implements ProductUseCase {
                 changes.price() != null ? changes.price() : current.price(),
                 current.status(),
                 current.createdAt(),
+                current.imageUrl(),
                 current.category());
         return productRepository.save(updated);
     }

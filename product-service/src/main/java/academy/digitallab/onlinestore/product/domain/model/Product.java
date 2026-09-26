@@ -14,22 +14,23 @@ public record Product(
         Double price,
         String status,
         LocalDate createdAt,
+        String imageUrl,
         Category category
 ) {
 
     public Product withId(Long newId) {
-        return new Product(newId, name, description, stock, price, status, createdAt, category);
+        return new Product(newId, name, description, stock, price, status, createdAt, imageUrl, category);
     }
 
     public Product withStatus(String newStatus) {
-        return new Product(id, name, description, stock, price, newStatus, createdAt, category);
+        return new Product(id, name, description, stock, price, newStatus, createdAt, imageUrl, category);
     }
 
     public Product withStock(Double newStock) {
-        return new Product(id, name, description, newStock, price, status, createdAt, category);
+        return new Product(id, name, description, newStock, price, status, createdAt, imageUrl, category);
     }
 
     public Product withCreatedAt(LocalDate date) {
-        return new Product(id, name, description, stock, price, status, date, category);
+        return new Product(id, name, description, stock, price, status, date, imageUrl, category);
     }
 }

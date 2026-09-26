@@ -39,6 +39,7 @@ public class ProductPersistenceMapper {
                 entity.getPrice(),
                 entity.getStatus(),
                 entity.getCreateAt(),
+                entity.getImageUrl(),
                 toDomain(entity.getCategory()));
     }
 
@@ -51,6 +52,7 @@ public class ProductPersistenceMapper {
         entity.setPrice(product.price());
         entity.setStatus(product.status());
         entity.setCreateAt(product.createdAt());
+        entity.setImageUrl(product.imageUrl());
         entity.setCategory(toEntity(product.category()));
         return entity;
     }

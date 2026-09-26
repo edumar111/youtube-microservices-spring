@@ -20,6 +20,7 @@ public final class ProductDtos {
             String description,
             @NotNull @PositiveOrZero Double stock,
             @NotNull @PositiveOrZero Double price,
+            String imageUrl,
             @NotNull Long categoryId) {
     }
 
@@ -37,6 +38,7 @@ public final class ProductDtos {
             Double price,
             String status,
             LocalDate createdAt,
+            String imageUrl,
             CategoryResponse category) {
     }
 }

@@ -146,12 +146,13 @@ def main():
     for name in sorted(categories):
         lines.append(f"INSERT INTO tbl_categories (id, name) VALUES ({cat_id[name]}, {sql_str(name)});")
     lines.append("")
-    lines.append("INSERT INTO tbl_products (id, name, description, stock, price, status, create_at, category_id) VALUES")
+    lines.append("INSERT INTO tbl_products (id, name, description, stock, price, status, create_at, image_url, category_id) VALUES")
     tuples = []
     for i, p in enumerate(products, start=1):
+        img = sql_str(p['image'][:1000]) if p.get('image') else "NULL"
         tuples.append(
             f"  ({i}, {sql_str(p['name'])}, {sql_str(p['description'])}, {p['stock']}, {p['price']}, "
-            f"'CREATED', CURRENT_DATE, {cat_id[p['category']]})"
+            f"'CREATED', CURRENT_DATE, {img}, {cat_id[p['category']]})"
         )
     lines.append(",\n".join(tuples) + ";")
     lines.append("")
