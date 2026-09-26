@@ -58,9 +58,9 @@ Aquí es **al revés**: tu `assistant` **expone** sus herramientas con el están
 | **`/assistant/chat`** | tu backend → **API de Claude** (nube) | tu asistente propio; se prueba con `curl` (sin UI web todavía) |
 | **Servidor MCP** | cliente MCP externo → tu backend | expone tus tools por el estándar MCP |
 
-> **Estado actual:** existe la Dirección 1 (endpoint REST que consume Claude) y la Dirección 2 (servidor
-> MCP). **No** existe una ventana de chat en el frontend Angular; es un endpoint de API. Añadir un
-> widget de chat en la web (que haga `POST /assistant/chat` vía Kong) es una extensión sencilla y opcional.
+> **Estado actual:** existen la Dirección 1 (endpoint REST que consume Claude), la Dirección 2 (servidor
+> MCP) y un **widget de chat en el frontend Angular** (burbuja flotante que hace `POST /assistant/chat`
+> vía Kong; ver §4.1). El widget es el "Cliente" de la Dirección 1.
 
 ---
 
@@ -212,6 +212,27 @@ Para un uso real, conéctalo desde un **cliente MCP** (p. ej. Claude Desktop, Cu
 ### Comprobar que arranca sin clave
 El módulo **compila y empaqueta** sin `ANTHROPIC_API_KEY` (`./mvnw -pl assistant package`), pero para
 **ejecutar** el chat necesitas la clave (el modelo se inicializa al arrancar).
+
+### 4.1 Widget de chat en el frontend (Angular)
+
+El frontend (`youtube-frontend-angular`) incluye un **widget de chat flotante** (burbuja abajo a la
+derecha, `ChatWidget`) que llama a `POST /assistant/chat` **a través de Kong** (`API_BASE`), muestra la
+conversación y sugerencias, y degrada con un mensaje si el asistente no está disponible.
+
+Para que el widget responda de verdad, hay que **levantar el servicio `assistant`** (necesita clave) y
+Kong (que ya tiene la ruta `/assistant`):
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+cd youtube-microservices-spring
+docker compose -f docker-compose.all.yml up -d                 # stack (incluye Kong con ruta /assistant)
+docker compose -f docker-compose.all.yml -f docker-compose.assistant.yml up --build -d assistant
+
+# Frontend
+cd ../youtube-frontend-angular && nvm use 22 && npm start        # http://localhost:4200
+```
+Abre http://localhost:4200, pulsa la burbuja de chat y pregunta por el catálogo. Si el servicio
+`assistant` no está corriendo, Kong responde 503 y el widget muestra "no disponible" (comportamiento
+esperado). El chat es **anónimo** (no requiere login): el asistente consulta el catálogo público.
 
 ---
 

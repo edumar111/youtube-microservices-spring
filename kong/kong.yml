@@ -36,6 +36,16 @@ services:
           - /invoices
         strip_path: false
 
+  # Ep. 15 — asistente (Spring AI). Solo responde si el servicio 'assistant' está levantado
+  # (docker-compose.assistant.yml, requiere ANTHROPIC_API_KEY).
+  - name: assistant-service
+    url: http://assistant:8095
+    routes:
+      - name: assistant
+        paths:
+          - /assistant
+        strip_path: false
+
 # Rate limiting global (política local, en memoria de cada nodo Kong).
 plugins:
   - name: rate-limiting

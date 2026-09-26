@@ -1,0 +1,19 @@
+# Ep. 15 — Asistente (Spring AI + Claude). Se ejecuta como override porque necesita clave:
+#   export ANTHROPIC_API_KEY=sk-ant-...
+#   docker compose -f docker-compose.all.yml -f docker-compose.assistant.yml up --build -d assistant
+# El widget de chat del frontend lo consume vía Kong (ruta /assistant).
+services:
+  assistant:
+    build:
+      context: .
+      dockerfile: assistant/Dockerfile
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_CHAT_MODEL: ${ANTHROPIC_CHAT_MODEL:-claude-sonnet-4-5}
+      # El asistente consulta el catálogo directo por DNS de Docker (GET público).
+      CLIENTS_PRODUCT_URL: http://product-service:8091
+    ports:
+      - "8095:8095"
+    depends_on:
+      product-service:
+        condition: service_started
