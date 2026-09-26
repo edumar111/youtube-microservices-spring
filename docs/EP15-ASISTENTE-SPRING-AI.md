@@ -15,6 +15,53 @@ en vez de inventar productos o precios.
 La clave es cómo le damos al modelo acceso a esos datos reales. Hay dos técnicas habituales:
 **Tool Calling / MCP** (lo implementado) y **RAG** (explicado y comparado más abajo).
 
+### 1.1 ¿Es un chat en el frontend? ¿Quién consume a quién?
+
+Es la confusión más común. Aquí conviven **dos direcciones distintas**, y hay que separarlas:
+
+- **`POST /assistant/chat` NO es un chat del frontend.** Es un **endpoint REST de tu propio backend**
+  (el microservicio `assistant`, puerto 8095). Hoy **no hay una ventana de chat en la web Angular**;
+  se prueba con `curl`/Postman (o, si se quiere, se puede añadir un componente de chat que lo llame).
+- **"Claude" = el modelo LLM en la nube de Anthropic**, no la app Claude Desktop ni claude.ai.
+
+**Dirección 1 — Tu backend CONSUME a Claude (esto es `/assistant/chat`):**
+```
+[ Cliente: curl / Postman / (futuro) chat en Angular ]
+      │  POST /assistant/chat  {"message":"¿qué zapatillas hay?"}
+      ▼
+[ assistant :8095 (tu Spring Boot) ]
+      │  Spring AI (ChatClient) --HTTPS + ANTHROPIC_API_KEY-->
+      ▼
+[ API de Anthropic / modelo Claude ]   (vive en la nube)
+      │  el modelo decide: "necesito el catálogo" → pide ejecutar una tool
+      ▼
+[ assistant ejecuta ProductTools.listProducts() ] --RestClient--> [ product-service ]
+      │  el resultado vuelve al modelo → Claude redacta la respuesta
+      ▼
+[ assistant ] devuelve JSON:  {"answer":"Tenemos adidas... $178.89, stock 5..."}
+```
+En esta dirección **tú consumes la API de Claude** (pagas tokens con tu API key). El "cliente" que
+llama a `/assistant/chat` puede ser `curl`, Postman o —si se implementa— un componente de chat en la web.
+
+**Dirección 2 — Un cliente externo CONSUME tu servicio, vía MCP (lo opuesto):**
+```
+[ Claude Desktop / Cursor / otro agente ]  --MCP (SSE)-->  [ assistant :8095 (servidor MCP) ]
+                                                                    │
+                                                                    ▼  descubre e invoca tus tools
+                                                             ProductTools -> product-service
+```
+Aquí es **al revés**: tu `assistant` **expone** sus herramientas con el estándar MCP para que un
+**cliente MCP externo** (por ejemplo Claude Desktop) las use.
+
+| | Quién llama a quién | Qué es |
+|---|---|---|
+| **`/assistant/chat`** | tu backend → **API de Claude** (nube) | tu asistente propio; se prueba con `curl` (sin UI web todavía) |
+| **Servidor MCP** | cliente MCP externo → tu backend | expone tus tools por el estándar MCP |
+
+> **Estado actual:** existe la Dirección 1 (endpoint REST que consume Claude) y la Dirección 2 (servidor
+> MCP). **No** existe una ventana de chat en el frontend Angular; es un endpoint de API. Añadir un
+> widget de chat en la web (que haga `POST /assistant/chat` vía Kong) es una extensión sencilla y opcional.
+
 ---
 
 ## 2. Conceptos
