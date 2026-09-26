@@ -131,35 +131,45 @@ def main():
             "goodsId": clean(col(r, "Goods ID")) or None,
         })
 
-    # --- SQL ---
+    # ids explícitos y estables de categoría (orden alfabético)
+    cat_id = {name: i + 1 for i, name in enumerate(sorted(categories))}
+    restart_at = 100000  # las secuencias arrancan muy por encima de las semillas
+
+    # --- SQL idempotente (DELETE + inserts + RESTART): sirve como carga manual y como semilla ---
     lines = [
-        "-- Carga del catálogo (generado desde el Excel de Temu). Ejecutar una vez contra productdb.",
+        "-- Catálogo generado desde el Excel de Temu. Idempotente: puede ejecutarse varias veces.",
+        "-- Se usa como carga manual (psql) y como semilla del runtime en Docker (data-catalog.sql).",
         f"-- Productos: {len(products)} · Categorías: {len(categories)} · Filas omitidas: {skipped}",
-        "BEGIN;",
+        "DELETE FROM tbl_products;",
+        "DELETE FROM tbl_categories;",
     ]
-    for c in sorted(categories):
-        lines.append(
-            f"INSERT INTO tbl_categories (name) SELECT {sql_str(c)} "
-            f"WHERE NOT EXISTS (SELECT 1 FROM tbl_categories WHERE name = {sql_str(c)});"
-        )
+    for name in sorted(categories):
+        lines.append(f"INSERT INTO tbl_categories (id, name) VALUES ({cat_id[name]}, {sql_str(name)});")
     lines.append("")
-    lines.append("INSERT INTO tbl_products (name, description, stock, price, status, create_at, category_id) VALUES")
+    lines.append("INSERT INTO tbl_products (id, name, description, stock, price, status, create_at, category_id) VALUES")
     tuples = []
-    for p in products:
+    for i, p in enumerate(products, start=1):
         tuples.append(
-            f"  ({sql_str(p['name'])}, {sql_str(p['description'])}, {p['stock']}, {p['price']}, "
-            f"'CREATED', CURRENT_DATE, (SELECT id FROM tbl_categories WHERE name = {sql_str(p['category'])}))"
+            f"  ({i}, {sql_str(p['name'])}, {sql_str(p['description'])}, {p['stock']}, {p['price']}, "
+            f"'CREATED', CURRENT_DATE, {cat_id[p['category']]})"
         )
     lines.append(",\n".join(tuples) + ";")
-    lines.append("COMMIT;")
-    (out / "catalog_import.sql").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    lines.append("")
+    lines.append(f"ALTER TABLE tbl_categories ALTER COLUMN id RESTART WITH {restart_at};")
+    lines.append(f"ALTER TABLE tbl_products ALTER COLUMN id RESTART WITH {restart_at};")
+    sql = "\n".join(lines) + "\n"
 
-    # --- JSON ---
+    (out / "catalog_import.sql").write_text(sql, encoding="utf-8")
     (out / "catalog.json").write_text(json.dumps(products, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    # También como semilla en el classpath de product-service (perfil docker).
+    seed = Path(__file__).resolve().parents[2] / "product-service" / "src" / "main" / "resources" / "data-catalog.sql"
+    seed.write_text(sql, encoding="utf-8")
 
     print(f"OK · productos={len(products)} categorías={sorted(categories)} omitidas={skipped}")
     print(f"  -> {out/'catalog_import.sql'}")
     print(f"  -> {out/'catalog.json'}")
+    print(f"  -> {seed}")
 
 
 if __name__ == "__main__":

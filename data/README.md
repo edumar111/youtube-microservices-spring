@@ -1,7 +1,10 @@
 # Datos del catálogo (para alumnos)
 
-Aquí están los archivos **listos para cargar** el catálogo de productos (593 ítems de TI/Computación)
-en la base de datos de `product-service`. **No necesitas el Excel**: usa el SQL o el JSON.
+Aquí están los archivos del catálogo de productos (593 ítems de TI/Computación). **No necesitas el Excel.**
+
+> ✅ **Con `make up` el catálogo se carga AUTOMÁTICAMENTE y de forma permanente.** product-service
+> arranca con el perfil `docker` y usa `data-catalog.sql` como semilla (sobrevive reinicios). Solo usa
+> los comandos de abajo si quieres cargarlo **manualmente** en otra BD o recargarlo.
 
 | Archivo | Para qué |
 |---|---|
@@ -25,10 +28,11 @@ Luego abre la tienda (http://localhost:4200) y verás el catálogo cargado.
 
 > El script crea las categorías si no existen y agrega los 593 productos (una sola transacción).
 
-## ⚠️ Nota sobre reinicios
-`product-service` reinicia su semilla demo (3 productos) al arrancar (`spring.sql.init.mode=always`),
-lo que borraría lo importado si **reinicias** el servicio. Si vas a reiniciar, vuelve a ejecutar la
-carga, o pide al instructor la configuración para hacerlo permanente (ver `scripts/catalog/README.md`).
+## Permanencia
+En Docker (`make up`), product-service usa el perfil `postgres,docker` y carga `data-catalog.sql`
+(este mismo catálogo) como semilla **idempotente** en cada arranque → el catálogo queda **permanente**
+y se re-crea igual tras cualquier reinicio (sin duplicados). La semilla demo de 3 productos solo se usa
+en los tests y en el perfil `local` (H2).
 
 ## ¿Cómo se generaron estos archivos?
 Con el generador `scripts/catalog/generate_catalog_sql.py` (lee el Excel y produce el SQL y el JSON).

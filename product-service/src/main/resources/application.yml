@@ -86,3 +86,16 @@ spring:
     username: ${SPRING_DATASOURCE_USERNAME:store}
     password: ${SPRING_DATASOURCE_PASSWORD:store}
     driver-class-name: org.postgresql.Driver
+
+---
+# Perfil de runtime en Docker: usa el CATÁLOGO real (593 productos) como semilla en vez de la
+# demo. Se activa junto con 'postgres' (SPRING_PROFILES_ACTIVE=postgres,docker). Es idempotente,
+# así que el catálogo queda cargado de forma permanente (sobrevive reinicios). Los tests siguen
+# usando solo 'postgres' con la semilla demo (data.sql).
+spring:
+  config:
+    activate:
+      on-profile: docker
+  sql:
+    init:
+      data-locations: classpath:data-catalog.sql

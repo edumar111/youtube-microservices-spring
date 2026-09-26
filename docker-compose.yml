@@ -56,7 +56,8 @@ services:
       context: .
       dockerfile: product-service/Dockerfile
     environment:
-      SPRING_PROFILES_ACTIVE: postgres
+      # perfil docker => carga el catálogo real (593 productos) como semilla permanente
+      SPRING_PROFILES_ACTIVE: postgres,docker
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/productdb
       SPRING_DATASOURCE_USERNAME: store
       SPRING_DATASOURCE_PASSWORD: store

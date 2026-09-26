@@ -60,21 +60,19 @@ docker exec -i "$PG" psql -U store -d productdb -tAc "SELECT count(*) FROM tbl_p
 ```
 Validado con `ROLLBACK`: inserta 593 productos sin errores.
 
-## ⚠️ Persistencia entre reinicios (importante)
+## Permanencia (resuelto)
 
-`product-service` usa `spring.sql.init.mode=always`, así que su `data.sql` (semillas demo: 3 productos)
-**se re-ejecuta y borra/reinserta** en cada arranque. Si cargas el catálogo por `psql` y luego
-**reinicias** product-service, el `DELETE` de `data.sql` borrará lo importado.
+El catálogo queda **permanente automáticamente**: el generador escribe además
+`product-service/src/main/resources/data-catalog.sql` (idempotente). En Docker, product-service arranca
+con el perfil **`postgres,docker`** (`SPRING_PROFILES_ACTIVE`), que fija
+`spring.sql.init.data-locations=classpath:data-catalog.sql` → carga el catálogo en cada arranque sin
+duplicar (DELETE + insert + `ALTER … RESTART WITH 100000`). Verificado: 593 productos que se mantienen
+tras reiniciar el servicio.
 
-**Paso 2 sugerido** (para que el catálogo sea permanente), elige uno:
-1. **Convertir este catálogo en la semilla**: usar `catalog_import.sql` como `data.sql` del perfil de
-   ejecución en Docker (dejando la semilla demo solo para tests/local H2).
-2. **Desactivar la reinicialización en runtime**: perfil `docker` con `spring.sql.init.mode=never` y
-   cargar el catálogo una vez (los tests siguen usando `always` con su semilla demo).
-3. Cargar el catálogo **después** del arranque y no reiniciar el servicio.
-
-> Nota: los tests (`ProductServiceIntegrationTest`) esperan las **3 semillas demo**, por eso la semilla
-> demo debe permanecer para el perfil de tests; el catálogo real es para el runtime.
+- **Tests y perfil `local` (H2):** siguen usando la semilla demo (`data.sql`, 3 productos). Los tests
+  (`ProductServiceIntegrationTest`) esperan esos 3.
+- **Regenerar** el catálogo actualiza a la vez `data/*` y `data-catalog.sql`; hay que reconstruir la
+  imagen de product-service para que tome el nuevo `data-catalog.sql`.
 
 Para un catálogo más rico (imagen, rating, precio lista, descuento), habría que **extender el esquema y
 el dominio** de product-service con esos campos — es una mejora aparte (los datos ya están en el JSON).
