@@ -11,6 +11,10 @@ services:
         paths:
           - /products
         strip_path: false
+      - name: categories
+        paths:
+          - /categories
+        strip_path: false
 
   - name: customer-service
     url: http://customer-service:8092
