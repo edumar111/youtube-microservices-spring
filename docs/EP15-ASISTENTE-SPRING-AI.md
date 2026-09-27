@@ -188,6 +188,35 @@ Usuario → POST /assistant/chat → ChatClient(Claude)
              el resultado vuelve al modelo → respuesta en lenguaje natural
 ```
 
+### El chat = Claude (LLM) + Tool Calling (juntos)
+
+El endpoint `/assistant/chat` **no** es "solo el LLM" ni "solo las tools": combina **ambos en cada
+respuesta**. Claude pone el razonamiento (entender la pregunta, decidir qué tool llamar, redactar); el
+Tool Calling pone los datos reales (ejecuta las `@Tool` contra product-service).
+
+```
+Widget de chat (Angular)
+   │  POST /assistant/chat  (vía Kong)
+   ▼
+assistant → ChatClient configurado con:
+   ├─ modelo Claude (Anthropic)      ← razona y redacta
+   └─ @Tool de ProductTools          ← se registran con .tools(productTools)
+        │  (Claude decide llamar una tool)
+        ▼
+   ProductTools.listProducts()/getProduct(id) → product-service (catálogo real)
+        │  (el resultado vuelve a Claude)
+        ▼
+   Claude redacta la respuesta con datos reales → JSON → widget
+```
+
+- **Dónde se unen en el código:** en `AssistantController`, el `ChatClient` (modelo Claude, configurado
+  en `application.yml`) se invoca con `.tools(productTools)`. Ahí quedan enlazados LLM + herramientas.
+- **Evidencia:** en las pruebas, Claude respondió con **stock y precios exactos** del catálogo — solo
+  posible si el Tool Calling se disparó (si fuera solo el LLM, inventaría o diría que no sabe).
+- **Relación con MCP:** este chat es la **Dirección 1** (tu backend consume Claude). El servidor MCP
+  (Dirección 2) publica las **mismas** tools para que un cliente externo las use, pero ahí el "cerebro"
+  lo pone ese cliente, no tu `ChatClient`.
+
 ### Cómo se expone MCP
 `spring-ai-starter-mcp-server-webmvc` levanta un **servidor MCP** (transporte SSE). Las herramientas que
 publica salen del bean `ToolCallbackProvider` (en `AssistantConfig`), construido con
